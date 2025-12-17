@@ -1,0 +1,15 @@
+# 左（central）
+if SHIELD_COOL640DB_LEFT
+config ZMK_KEYBOARD_NAME
+    default "COOL640DB"
+endif
+
+# 左右共通
+if SHIELD_COOL640DB_LEFT || SHIELD_COOL640DB_RIGHT
+config ZMK_SPLIT
+    default y
+config ZMK_POINTING
+    default y
+config SPI
+    default y
+endif

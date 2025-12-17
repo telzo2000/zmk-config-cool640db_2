@@ -1,0 +1,5 @@
+config SHIELD_COOL&$0DB_LEFT
+    def_bool $(shields_list_contains,cool640db_left)
+
+config SHIELD_COOL&$0DB_RIGHT
+    def_bool $(shields_list_contains,cool640db_right)

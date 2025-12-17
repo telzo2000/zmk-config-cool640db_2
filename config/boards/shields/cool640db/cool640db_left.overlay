@@ -1,0 +1,104 @@
+#include "cool640db.dtsi"
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <input/processors.dtsi>
+#include <input/processors/sensor_rotation.dtsi>
+
+&xiao_serial { status = "disabled"; };
+
+&pinctrl {
+    spi0_default: spi0_default {
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK,  0, 5)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 4)>,
+                    <NRF_PSEL(SPIM_MISO, 0, 4)>;
+        };
+    };
+    spi0_sleep: spi0_sleep {
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK,  0, 5)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 4)>,
+                    <NRF_PSEL(SPIM_MISO, 0, 4)>;
+            low-power-enable;
+        };
+    };
+};
+
+&spi0 {
+    status = "okay";
+    compatible = "nordic,nrf-spim";
+    pinctrl-0 = <&spi0_default>;
+    pinctrl-1 = <&spi0_sleep>;
+    pinctrl-names = "default", "sleep";
+    cs-gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
+
+    tb_left: trackball@0 {
+        status = "okay";
+        compatible = "pixart,pmw3610";
+        reg = <0>;
+        spi-max-frequency = <2000000>;
+        irq-gpios = <&gpio0 2 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+        cpi = <200>; /* センサー感度 */
+
+
+        evt-type = <INPUT_EV_REL>;
+        x-input-code = <INPUT_REL_X>;
+        y-input-code = <INPUT_REL_Y>;
+    };
+};
+
+/ {
+    sensor_rotation_left: sensor-rotation-left {
+        compatible = "zmk,input-processor-sensor-rotation";
+        status = "okay";
+        #input-processor-cells = <0>;
+        rotation-angle = <(-24)>;
+    };
+
+    sensor_rotation_right: sensor-rotation-right {
+        compatible = "zmk,input-processor-sensor-rotation";
+        #input-processor-cells = <0>;
+        status = "okay";
+        rotation-angle = <24>;
+    };
+};
+
+&tb_left_listener {
+    status = "okay";
+    device = <&tb_left>;
+
+    input-processors =
+            <&sensor_rotation_left>,
+            <&zip_x_scaler 0 1>,
+            <&zip_y_scaler 1 15>,
+            <&zip_xy_to_scroll_mapper>,
+            <&zip_scroll_transform INPUT_TRANSFORM_Y_INVERT>,
+            <&zip_scroll_transform INPUT_TRANSFORM_X_INVERT>;
+    };
+
+/ {
+  /omit-if-no-ref/ zip_temp_layer: zip_temp_layer {
+    compatible = "zmk,input-processor-temp-layer";
+    #input-processor-cells = <2>;
+    require-prior-idle-ms = <350>; /* キー押下後、何msオートマウスレイヤに入らないようにするか、誤爆防止 */
+  };
+};
+
+&tb_right_listener {
+    status = "okay";
+
+    input-processors =
+        <&sensor_rotation_right>,
+        <&zip_temp_layer 3 5000>; /* オートマウスレイヤーの指定とトラボ操作及びマウスボタン押下後に滞留する時間 */
+};
+
+&zip_temp_layer {
+    excluded-positions = <
+        6
+        7
+        8
+        30
+        32
+        33
+        39
+    >;
+};
